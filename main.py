@@ -19,7 +19,7 @@ load_dotenv()
 
 os.getenv("OPENAI_API_KEY")
 model = ChatOpenAI(
-    model="gpt-4-0613",
+    model="gpt-5",
     api_key="ahhh",
     base_url="http://127.0.0.1:1234/v1",
 )
