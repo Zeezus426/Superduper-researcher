@@ -1,8 +1,13 @@
 
 from langchain.tools import tool
-from langchain.chat_models import init_chat_model
+from langchain_openai import ChatOpenAI
 
-model = 
+
+model = ChatOpenAI(
+    model="gpt-4-0613",
+    api_key="ahhh",
+    base_url="http://127.0.0.1:1234/v1",
+)
 
 
 # Define tools
