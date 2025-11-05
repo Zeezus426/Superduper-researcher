@@ -10,9 +10,6 @@ from langchain.messages import SystemMessage
 from langchain.messages import ToolMessage
 from langchain.messages import HumanMessage
 from langchain_community.document_loaders import TextLoader
-from langchain_neo4j import Neo4jVector
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
 from dotenv import load_dotenv
 import os
 load_dotenv()

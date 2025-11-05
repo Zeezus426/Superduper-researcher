@@ -5,7 +5,13 @@ from langgraph.types import Send
 from typing_extensions import TypedDict
 from langchain.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, START, END
-from main import model as llm
+from langchain_openai import ChatOpenAI
+
+model = ChatOpenAI(
+    model="gpt-5",
+    api_key="ahhh",
+    base_url="http://127.0.0.1:1234/v1",
+)
 
 # Schema for structured output to use in planning
 class Section(BaseModel):
