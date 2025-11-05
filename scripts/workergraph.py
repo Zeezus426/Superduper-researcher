@@ -64,7 +64,25 @@ def orchestrator(state: State):
     return {"sections": report_sections.sections}
 
 
-def llm_call(state: WorkerState):
+def llm_call1(state: WorkerState):
+    """Worker writes a section of the report"""
+
+    # Generate section
+    section = llm.invoke(
+        [
+            SystemMessage(
+                content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
+            ),
+            HumanMessage(
+                content=f"Here is the section name: {state['section'].name} and description: {state['section'].description}"
+            ),
+        ]
+    )
+
+    # Write the updated section to completed sections
+    return {"completed_sections": [section.content]}
+
+def llm_call2(state: WorkerState):
     """Worker writes a section of the report"""
 
     # Generate section
@@ -83,6 +101,100 @@ def llm_call(state: WorkerState):
     return {"completed_sections": [section.content]}
 
 
+def llm_call3(state: WorkerState):
+    """Worker writes a section of the report"""
+
+    # Generate section
+    section = llm.invoke(
+        [
+            SystemMessage(
+                content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
+            ),
+            HumanMessage(
+                content=f"Here is the section name: {state['section'].name} and description: {state['section'].description}"
+            ),
+        ]
+    )
+
+    # Write the updated section to completed sections
+    return {"completed_sections": [section.content]}
+
+
+def llm_call4(state: WorkerState):
+    """Worker writes a section of the report"""
+
+    # Generate section
+    section = llm.invoke(
+        [
+            SystemMessage(
+                content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
+            ),
+            HumanMessage(
+                content=f"Here is the section name: {state['section'].name} and description: {state['section'].description}"
+            ),
+        ]
+    )
+
+    # Write the updated section to completed sections
+    return {"completed_sections": [section.content]}
+
+
+def llm_call5(state: WorkerState):
+    """Worker writes a section of the report"""
+
+    # Generate section
+    section = llm.invoke(
+        [
+            SystemMessage(
+                content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
+            ),
+            HumanMessage(
+                content=f"Here is the section name: {state['section'].name} and description: {state['section'].description}"
+            ),
+        ]
+    )
+
+    # Write the updated section to completed sections
+    return {"completed_sections": [section.content]}
+
+
+def llm_call6(state: WorkerState):
+    """Worker writes a section of the report"""
+
+    # Generate section
+    section = llm.invoke(
+        [
+            SystemMessage(
+                content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
+            ),
+            HumanMessage(
+                content=f"Here is the section name: {state['section'].name} and description: {state['section'].description}"
+            ),
+        ]
+    )
+
+    # Write the updated section to completed sections
+    return {"completed_sections": [section.content]}
+
+
+def llm_call7(state: WorkerState):
+    """Worker writes a section of the report"""
+
+    # Generate section
+    section = llm.invoke(
+        [
+            SystemMessage(
+                content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
+            ),
+            HumanMessage(
+                content=f"Here is the section name: {state['section'].name} and description: {state['section'].description}"
+            ),
+        ]
+    )
+
+    # Write the updated section to completed sections
+    return {"completed_sections": [section.content]}
+
 def synthesizer(state: State):
     """Synthesize full report from sections"""
 
@@ -98,9 +210,17 @@ def synthesizer(state: State):
 # Conditional edge function to create llm_call workers that each write a section of the report
 def assign_workers(state: State):
     """Assign a worker to each section in the plan"""
-
+    for agent in [
+        "llm_call1",
+        "llm_call2",
+        "llm_call3",
+        "llm_call4",
+        "llm_call5",
+        "llm_call6",
+        "llm_call7"
+    ]:
     # Kick off section writing in parallel via Send() API
-    return [Send("llm_call", {"section": s}) for s in state["sections"]]
+       return [Send(agent, {"section": s}) for s in state["sections"]]
 
 
 # Build workflow
@@ -108,16 +228,41 @@ orchestrator_worker_builder = StateGraph(State)
 
 # Add the nodes
 orchestrator_worker_builder.add_node("orchestrator", orchestrator)
-orchestrator_worker_builder.add_node("llm_call", llm_call)
+orchestrator_worker_builder.add_node("llm_call1", llm_call1)
+orchestrator_worker_builder.add_node("llm_call2", llm_call2)
+orchestrator_worker_builder.add_node("llm_call3", llm_call3)
+orchestrator_worker_builder.add_node("llm_call4", llm_call4)
+orchestrator_worker_builder.add_node("llm_call5", llm_call5)
+orchestrator_worker_builder.add_node("llm_call6", llm_call6)
+orchestrator_worker_builder.add_node("llm_call7", llm_call7)
+
 orchestrator_worker_builder.add_node("synthesizer", synthesizer)
 
 # Add edges to connect nodes
 orchestrator_worker_builder.add_edge(START, "orchestrator")
 orchestrator_worker_builder.add_conditional_edges(
-    "orchestrator", assign_workers, ["llm_call"]
+    "orchestrator", 
+    assign_workers, 
+    {agent: agent for agent in ["llm_call1",
+                                 "llm_call2", 
+                                 "llm_call3", 
+                                 "llm_call4", 
+                                 "llm_call5", 
+                                 "llm_call6", 
+                                 "llm_call7"]}
 )
-orchestrator_worker_builder.add_edge("llm_call", "synthesizer")
-orchestrator_worker_builder.add_edge("synthesizer", END)
+
+
+for agent in [  "llm_call1",
+                "llm_call2", 
+                "llm_call3", 
+                "llm_call4", 
+                "llm_call5", 
+                "llm_call6", 
+                "llm_call7"
+                ]:
+    orchestrator_worker_builder.add_edge(agent, "synthesizer")
+    orchestrator_worker_builder.add_edge("synthesizer", END)
 
 # Compile the workflow
 orchestrator_worker = orchestrator_worker_builder.compile()
