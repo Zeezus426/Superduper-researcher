@@ -1,8 +1,23 @@
 
 from langchain.tools import tool
 from langchain_openai import ChatOpenAI
+from typing import Literal
+from langgraph.graph import StateGraph, START, END
+from langchain.messages import AnyMessage
+from typing_extensions import TypedDict, Annotated
+import operator
+from langchain.messages import SystemMessage
+from langchain.messages import ToolMessage
+from langchain.messages import HumanMessage
+from langchain_community.document_loaders import TextLoader
+from langchain_neo4j import Neo4jVector
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
-
+os.getenv("OPENAI_API_KEY")
 model = ChatOpenAI(
     model="gpt-4-0613",
     api_key="ahhh",
@@ -51,17 +66,12 @@ model_with_tools = model.bind_tools(tools)
 
 # Step 2: Define state
 
-from langchain.messages import AnyMessage
-from typing_extensions import TypedDict, Annotated
-import operator
-
 
 class MessagesState(TypedDict):
     messages: Annotated[list[AnyMessage], operator.add]
     llm_calls: int
 
 # Step 3: Define model node
-from langchain.messages import SystemMessage
 
 
 def llm_call(state: dict):
@@ -84,7 +94,6 @@ def llm_call(state: dict):
 
 # Step 4: Define tool node
 
-from langchain.messages import ToolMessage
 
 
 def tool_node(state: dict):
@@ -99,8 +108,6 @@ def tool_node(state: dict):
 
 # Step 5: Define logic to determine whether to end
 
-from typing import Literal
-from langgraph.graph import StateGraph, START, END
 
 
 # Conditional edge function to route to the tool node or end based upon whether the LLM made a tool call
@@ -140,7 +147,6 @@ agent = agent_builder.compile()
 
 
 # Invoke
-from langchain.messages import HumanMessage
 messages = [HumanMessage(content="Add 3 and 4.")]
 messages = agent.invoke({"messages": messages})
 for m in messages["messages"]:
