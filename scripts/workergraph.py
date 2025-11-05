@@ -7,7 +7,7 @@ from langchain.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, START, END
 from langchain_openai import ChatOpenAI
 
-model = ChatOpenAI(
+llm = ChatOpenAI(
     model="gpt-5",
     api_key="ahhh",
     base_url="http://127.0.0.1:1234/v1",
@@ -31,8 +31,6 @@ class Sections(BaseModel):
 
 # Augment the LLM with schema for structured output
 planner = llm.with_structured_output(Sections)
-
-
 
 
 # Graph state
