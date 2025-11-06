@@ -1,3 +1,5 @@
 .env
 .venv
 shell-stage.txt
+__pycache__
+lightning.cpython-312.pyc

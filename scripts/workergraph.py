@@ -19,12 +19,17 @@ llm = ChatOpenAI(
 
 
 async def main():
-    inmili = await mili.get_tools()
-    induck = await duck.get_tools()
-
-    tools = inmili + induck
-    tools_by_name = {tool.name: tool for tool in tools}
-
+    mili_tools = await mili.get_tools()
+    duck_tools = await duck.get_tools()
+    
+    # Create unified tools_by_name for tool_node (all tools)
+    all_tools = mili_tools + duck_tools
+    tools_by_name = {tool.name: tool for tool in all_tools}
+    
+    # Create separate bindings for each tool set
+    llm_with_mili = llm.bind_tools(mili_tools)
+    llm_with_duck = llm.bind_tools(duck_tools)
+    
     
     # Schema for structured output to use in planning
     class Section(BaseModel):
@@ -48,7 +53,6 @@ async def main():
 
     # Augment the LLM with schema for structured output
     planner = llm.with_structured_output(Sections)
-    llm_with_tools = llm.bind_tools(tools)
 
 
 
@@ -59,6 +63,7 @@ async def main():
         completed_sections: Annotated[
             list, operator.add
         ]  # All workers write to this key in parallel
+        decision: str
         final_report: str  # Final report
 
 
@@ -87,7 +92,7 @@ async def main():
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_tools.invoke(
+        section = llm_with_mili.invoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -105,7 +110,7 @@ async def main():
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_tools.invoke(
+        section = llm_with_duck.invoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -124,7 +129,7 @@ async def main():
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_tools.invoke(
+        section = llm_with_mili.invoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -143,7 +148,7 @@ async def main():
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_tools.invoke(
+        section = llm_with_duck.invoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -162,7 +167,7 @@ async def main():
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_tools.invoke(
+        section = llm_with_mili.invoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -181,7 +186,7 @@ async def main():
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_tools.invoke(
+        section = llm_with_duck.invoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -200,7 +205,7 @@ async def main():
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_tools.invoke(
+        section = llm_with_mili.invoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -251,6 +256,23 @@ async def main():
             observation = tool.invoke(tool_call["args"])
             result.append(ToolMessage(content=observation, tool_call_id=tool_call["id"]))
         return {"messages": result}
+    
+
+        
+    def route_after_tools(state: State):
+        """Route back to the appropriate agent after tool execution"""
+        decision = state.get("decision")
+        mapping = {
+            "llm_call1":"llm_call1",
+            "llm_call2":"llm_call2",
+            "llm_call3":"llm_call3",
+            "llm_call4":"llm_call4",
+            "llm_call5":"llm_call5",
+            "llm_call6":"llm_call6",
+            "llm_call7":"llm_call7",
+
+        }
+        return mapping, decision
 
 
     def should_continue(state: MessagesState) -> Literal["tool_node", END]:
@@ -282,40 +304,46 @@ async def main():
 
     orchestrator_worker_builder.add_node("synthesizer", synthesizer)
 
-    # Add edges to connect nodes
-    orchestrator_worker_builder.add_edge(START, "orchestrator")
-    orchestrator_worker_builder.add_conditional_edges(
-        "orchestrator", 
-        assign_workers, 
-        {agent: agent for agent in ["llm_call1",
-                                    "llm_call2", 
-                                    "llm_call3", 
-                                    "llm_call4", 
-                                    "llm_call5", 
-                                    "llm_call6", 
-                                    "llm_call7"]},
-        should_continue,
-        {
-            "tool_node": "tool_node",
-            END: END,
-                }
 
+        # 1. START → orchestrator (acts as llm_call_router)
+    orchestrator_worker_builder.add_edge(START, "orchestrator")
+
+    # 2. orchestrator → conditionally to any agent (llm_call1 to llm_call7)
+    orchestrator_worker_builder.add_conditional_edges(
+        "orchestrator",
+        assign_workers,  # same as alphagraph's route_decision
+        {agent: agent for agent in [
+            "llm_call1", "llm_call2", "llm_call3", "llm_call4", 
+            "llm_call5", "llm_call6", "llm_call7"
+        ]}
     )
 
+    # 3. Each agent → either tool_node or END (exactly like alphagraph)
+    for agent in ["llm_call1", "llm_call2", "llm_call3", "llm_call4", 
+                "llm_call5", "llm_call6", "llm_call7"]:
+        orchestrator_worker_builder.add_conditional_edges(
+            agent,
+            should_continue,  # same as alphagraph
+            {
+                "tool_node": "tool_node",  # continue looping
+                END: END,                  # finish, trigger synthesizer
+            }
+        )
 
-    for agent in [  "llm_call1",
-                    "llm_call2", 
-                    "llm_call3", 
-                    "llm_call4", 
-                    "llm_call5", 
-                    "llm_call6", 
-                    "llm_call7"
-                    ]:
-        orchestrator_worker_builder.add_edge(agent, "synthesizer")
-        orchestrator_worker_builder.add_edge("synthesizer", END)
-        orchestrator_worker_builder.add_edge("tool_node", agent)
+    # 4. After tool execution → go back to the SAME agent (alphagraph loop)
+    orchestrator_worker_builder.add_conditional_edges(
+        "tool_node",
+        route_after_tools,  # same as alphagraph
+        {agent: agent for agent in [
+            "llm_call1", "llm_call2", "llm_call3", "llm_call4", 
+            "llm_call5", "llm_call6", "llm_call7"
+        ]}
+    )
 
-    # Compile the workflow
+    # 5. ✅ CRITICAL: When ANY agent reaches END, go to synthesizer
+    #    This mimics: “after final decision, synthesize output”
+    orchestrator_worker_builder.add_edge("synthesizer", END)
+
     orchestrator_worker = orchestrator_worker_builder.compile()
 
 
