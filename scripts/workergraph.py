@@ -71,14 +71,15 @@ async def main():
     class WorkerState(TypedDict):
         section: Section
         completed_sections: Annotated[list, operator.add]
+        messages: Annotated[list[AnyMessage], operator.add]
 
 
     # Nodes
-    def orchestrator(state: State):
+    async def orchestrator(state: State):
         """Orchestrator that generates a plan for the report"""
 
         # Generate queries
-        report_sections = planner.invoke(
+        report_sections = await planner.ainvoke(
             [
                 SystemMessage(content="Generate a plan for the report."),
                 HumanMessage(content=f"Here is the report topic: {state['topic']}"),
@@ -88,11 +89,11 @@ async def main():
         return {"sections": report_sections.sections}
 
 
-    def llm_call1(state: WorkerState):
+    async def llm_call1(state: WorkerState):
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_mili.invoke(
+        section = await llm_with_mili.ainvoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -103,33 +104,16 @@ async def main():
             ]
         )
 
-        # Write the updated section to completed sections
-        return {"completed_sections": [section.content]}
-
-    def llm_call2(state: WorkerState):
-        """Worker writes a section of the report"""
-
-        # Generate section
-        section = llm_with_duck.invoke(
-            [
-                SystemMessage(
-                    content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
-                ),
-                HumanMessage(
-                    content=f"Here is the section name: {state['section'].name} and description: {state['section'].description}"
-                ),
-            ]
-        )
+        
 
         # Write the updated section to completed sections
         return {"completed_sections": [section.content]}
 
-
-    def llm_call3(state: WorkerState):
+    async def llm_call2(state: WorkerState):
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_mili.invoke(
+        section = await llm_with_duck.ainvoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -144,11 +128,11 @@ async def main():
         return {"completed_sections": [section.content]}
 
 
-    def llm_call4(state: WorkerState):
+    async def llm_call3(state: WorkerState):
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_duck.invoke(
+        section = await llm_with_mili.ainvoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -163,11 +147,11 @@ async def main():
         return {"completed_sections": [section.content]}
 
 
-    def llm_call5(state: WorkerState):
+    async def llm_call4(state: WorkerState):
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_mili.invoke(
+        section = await llm_with_duck.ainvoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -182,11 +166,11 @@ async def main():
         return {"completed_sections": [section.content]}
 
 
-    def llm_call6(state: WorkerState):
+    async def llm_call5(state: WorkerState):
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_duck.invoke(
+        section = await llm_with_mili.ainvoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -201,11 +185,11 @@ async def main():
         return {"completed_sections": [section.content]}
 
 
-    def llm_call7(state: WorkerState):
+    async def llm_call6(state: WorkerState):
         """Worker writes a section of the report"""
 
         # Generate section
-        section = llm_with_mili.invoke(
+        section = await llm_with_duck.ainvoke(
             [
                 SystemMessage(
                     content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
@@ -219,7 +203,26 @@ async def main():
         # Write the updated section to completed sections
         return {"completed_sections": [section.content]}
 
-    def synthesizer(state: State):
+
+    async def llm_call7(state: WorkerState):
+        """Worker writes a section of the report"""
+
+        # Generate section
+        section = await llm_with_mili.ainvoke(
+            [
+                SystemMessage(
+                    content="Write a report section following the provided name and description. Include no preamble for each section. Use markdown formatting."
+                ),
+                HumanMessage(
+                    content=f"Here is the section name: {state['section'].name} and description: {state['section'].description}"
+                ),
+            ]
+        )
+
+        # Write the updated section to completed sections
+        return {"completed_sections": [section.content]}
+
+    async def synthesizer(state: State):
         """Synthesize full report from sections"""
 
         # List of completed sections
@@ -247,13 +250,13 @@ async def main():
             return [Send(agent, {"section": s}) for s in state["sections"]]
         
 
-    def tool_node(state: dict):
+    async def tool_node(state: dict):
         """Performs the tool call"""
 
         result = []
         for tool_call in state["messages"][-1].tool_calls:
             tool = tools_by_name[tool_call["name"]]
-            observation = tool.invoke(tool_call["args"])
+            observation = tool.ainvoke(tool_call["args"])
             result.append(ToolMessage(content=observation, tool_call_id=tool_call["id"]))
         return {"messages": result}
     
@@ -348,7 +351,7 @@ async def main():
 
 
     # Invoke
-    state = orchestrator_worker.invoke({"topic": "Using the tools available to you research and Create a report on LLM scaling laws"})
+    state = await orchestrator_worker.ainvoke({"topic": "Using the tools available to you research and Create a report on LLM scaling laws"})
 
     print(state["final_report"])
 
